@@ -4,6 +4,7 @@
   "description": "Manage and execute your custom project commands globally in VS Code.",
   "version": "0.0.1",
   "publisher": "NicolasXs",
+  "icon": "media/icon.png",
   "engines": {
     "vscode": ">=1.70.0"
   },
