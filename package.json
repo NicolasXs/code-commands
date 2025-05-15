@@ -58,7 +58,7 @@
       "codeCommands": [
         {
           "id": "comandosView",
-          "name": "Project Commands"
+          "name": "Code Commands"
         }
       ]
     },
@@ -69,15 +69,15 @@
       },
       {
         "command": "myCommands.runCommand",
-        "title": "Run Command"
+        "title": "Run"
       },
       {
         "command": "myCommands.editCommand",
-        "title": "Edit Command"
+        "title": "Edit"
       },
       {
         "command": "myCommands.removeCommand",
-        "title": "Remove Command"
+        "title": "Remove"
       },
       {
         "command": "myCommands.refreshView",

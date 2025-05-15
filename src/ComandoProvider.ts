@@ -18,11 +18,16 @@ export class ComandoProvider implements vscode.TreeDataProvider<ComandoItem> {
 
   constructor(private context: vscode.ExtensionContext) {
     this.carregarComandos();
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("code-commands.commands")) {
+        this.refresh();
+      }
+    });
   }
 
   refresh(): void {
     this.carregarComandos();
-    this._onDidChangeTreeData.fire();
+    setTimeout(() => this._onDidChangeTreeData.fire(), 50);
   }
   getTreeItem(element: ComandoItem): vscode.TreeItem {
     const getIcon = (file: string) => {
@@ -32,11 +37,7 @@ export class ComandoProvider implements vscode.TreeDataProvider<ComandoItem> {
       };
     };
 
-    // Sempre usar o ícone do terminal como padrão para os itens da árvore
     element.iconPath = getIcon("terminal.svg");
-
-    // Não modificamos mais o ícone com base no conteúdo do texto
-    // Os ícones dos botões (play, edit, delete) são definidos no package.json
     return element;
   }
 
@@ -65,11 +66,9 @@ export class ComandoProvider implements vscode.TreeDataProvider<ComandoItem> {
       this.comandos = [];
     }
   }
-
   public adicionarComando(comando: Comando) {
     this.comandos.push(comando);
     this.salvarComandos();
-    setTimeout(() => this.refresh(), 100);
   }
 
   public editarComando(oldLabel: string, newComando: Comando) {
@@ -77,14 +76,12 @@ export class ComandoProvider implements vscode.TreeDataProvider<ComandoItem> {
     if (index !== -1) {
       this.comandos[index] = newComando;
       this.salvarComandos();
-      this.refresh();
     }
   }
 
   public removerComando(label: string) {
     this.comandos = this.comandos.filter((c) => c.label !== label);
     this.salvarComandos();
-    this.refresh();
   }
 
   private salvarComandos() {
@@ -94,7 +91,9 @@ export class ComandoProvider implements vscode.TreeDataProvider<ComandoItem> {
         "commands",
         this.comandos,
         vscode.ConfigurationTarget.Global
-      );
+      ).then(() => {
+        this.refresh();
+      });
     } catch (e) {
       vscode.window.showErrorMessage("Error saving commands: " + e);
     }
@@ -108,7 +107,7 @@ class ComandoItem extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.commandStr = commandStr;
     this.tooltip = `${this.label} - ${this.commandStr}`;
-    this.description = this.commandStr; // É crucial que o contextValue seja exatamente igual ao valor usado nas condições when do package.json
+    this.description = this.commandStr;
     this.contextValue = "comandoItem";
   }
 }
