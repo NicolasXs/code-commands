@@ -1,0 +1,140 @@
+{
+  "name": "code-commands",
+  "displayName": "Code Commands",
+  "description": "Manage and execute your custom project commands globally in VS Code.",
+  "version": "0.0.1",
+  "publisher": "NicolasXs",
+  "engines": {
+    "vscode": ">=1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./src/extension.js",
+  "scripts": {
+    "vscode:prepublish": "tsc -p .",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.70.0",
+    "typescript": "^5.0.0",
+    "vsce": "^3.0.0"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Code Commands",
+      "properties": {
+        "code-commands.commands": {
+          "type": "array",
+          "default": [],
+          "description": "List of saved commands",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codeCommands",
+          "title": "Code Commands",
+          "icon": "media/terminal.svg"
+        }
+      ]
+    },
+    "views": {
+      "codeCommands": [
+        {
+          "id": "comandosView",
+          "name": "Project Commands"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "myCommands.addCommand",
+        "title": "Add New Command"
+      },
+      {
+        "command": "myCommands.runCommand",
+        "title": "Run Command"
+      },
+      {
+        "command": "myCommands.editCommand",
+        "title": "Edit Command"
+      },
+      {
+        "command": "myCommands.removeCommand",
+        "title": "Remove Command"
+      },
+      {
+        "command": "myCommands.refreshView",
+        "title": "Refresh Commands"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "myCommands.addCommand",
+          "when": "view == comandosView",
+          "group": "navigation",
+          "icon": {
+            "light": "media/add.svg",
+            "dark": "media/add.svg"
+          }
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "myCommands.runCommand",
+          "when": "view == comandosView && viewItem == comandoItem",
+          "group": "inline",
+          "icon": {
+            "light": "media/play.svg",
+            "dark": "media/play.svg"
+          }
+        },
+        {
+          "command": "myCommands.editCommand",
+          "when": "view == comandosView && viewItem == comandoItem",
+          "group": "inline",
+          "icon": {
+            "light": "media/edit.svg",
+            "dark": "media/edit.svg"
+          }
+        },
+        {
+          "command": "myCommands.removeCommand",
+          "when": "view == comandosView && viewItem == comandoItem",
+          "group": "inline",
+          "icon": {
+            "light": "media/delete.svg",
+            "dark": "media/delete.svg"
+          }
+        }
+      ]
+    }
+  },
+  "activationEvents": [
+    "onView:comandosView",
+    "onCommand:myCommands.addCommand",
+    "onCommand:myCommands.runCommand",
+    "onCommand:myCommands.editCommand",
+    "onCommand:myCommands.removeCommand"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NicolasXs/code-commands.git"
+  }
+}

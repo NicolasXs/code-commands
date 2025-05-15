@@ -1,0 +1,37 @@
+# Compiled output
+src/**/*.js
+src/**/*.js.map
+*.vsix
+out/
+code-commands-*.vsix
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+.npm
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode/commands.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Exceptions - include JavaScript files at the root level that are part of the project config
+!*.config.js
