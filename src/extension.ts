@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "myCommands.runCommand",
     (item: CommandItem) => {
-      const terminal = vscode.window.createTerminal("Command");
+      const terminal = vscode.window.createTerminal(item.label);
       terminal.show();
       terminal.sendText(item.commandStr);
       vscode.window.showInformationMessage(`Running: ${item.label}`);

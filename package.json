@@ -89,15 +89,28 @@
       },
       {
         "command": "myCommands.runCommand",
-        "title": "Run"
+        "title": "Run",
+        "icon": {
+          "light": "media/play.svg",
+          "dark": "media/play.svg"
+        }
+
       },
       {
         "command": "myCommands.editCommand",
-        "title": "Edit"
+        "title": "Edit",
+        "icon": {
+          "light": "media/edit.svg",
+          "dark": "media/edit.svg"
+        }
       },
       {
         "command": "myCommands.removeCommand",
-        "title": "Remove"
+        "title": "Remove",
+        "icon": {
+          "light": "media/delete.svg",
+          "dark": "media/delete.svg"
+        }
       },
       {
         "command": "myCommands.refreshView",
@@ -109,11 +122,19 @@
       },
       {
         "command": "myCommands.renameGroup",
-        "title": "Rename Group"
+        "title": "edit",
+        "icon": {
+          "light": "media/edit.svg",
+          "dark": "media/edit.svg"
+        }
       },
       {
         "command": "myCommands.removeGroup",
-        "title": "Remove Group"
+        "title": "remove",
+        "icon": {
+          "light": "media/delete.svg",
+          "dark": "media/delete.svg"
+        }
       }
     ],
     "menus": {
