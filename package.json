@@ -27,18 +27,38 @@
     "configuration": {
       "title": "Code Commands",
       "properties": {
-        "code-commands.commands": {
+        "code-commands.groups": {
           "type": "array",
-          "default": [],
-          "description": "List of saved commands",
+          "default": [
+            {
+              "id": "default",
+              "name": "Default",
+              "commands": []
+            }
+          ],
+          "description": "List of command groups with their commands.",
           "items": {
             "type": "object",
             "properties": {
-              "label": {
+              "id": {
                 "type": "string"
               },
-              "command": {
+              "name": {
                 "type": "string"
+              },
+              "commands": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "command": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
           }
@@ -57,7 +77,7 @@
     "views": {
       "codeCommands": [
         {
-          "id": "comandosView",
+          "id": "commandsView",
           "name": "Code Commands"
         }
       ]
@@ -82,13 +102,34 @@
       {
         "command": "myCommands.refreshView",
         "title": "Refresh Commands"
+      },
+      {
+        "command": "myCommands.addGroup",
+        "title": "Add New Group"
+      },
+      {
+        "command": "myCommands.renameGroup",
+        "title": "Rename Group"
+      },
+      {
+        "command": "myCommands.removeGroup",
+        "title": "Remove Group"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "myCommands.addCommand",
-          "when": "view == comandosView",
+          "when": "view == commandsView",
+          "group": "navigation",
+          "icon": {
+            "light": "media/add.svg",
+            "dark": "media/add.svg"
+          }
+        },
+        {
+          "command": "myCommands.addGroup",
+          "when": "view == commandsView",
           "group": "navigation",
           "icon": {
             "light": "media/add.svg",
@@ -99,7 +140,7 @@
       "view/item/context": [
         {
           "command": "myCommands.runCommand",
-          "when": "view == comandosView && viewItem == comandoItem",
+          "when": "view == commandsView && viewItem == commandItem",
           "group": "inline",
           "icon": {
             "light": "media/play.svg",
@@ -108,7 +149,7 @@
         },
         {
           "command": "myCommands.editCommand",
-          "when": "view == comandosView && viewItem == comandoItem",
+          "when": "view == commandsView && viewItem == commandItem",
           "group": "inline",
           "icon": {
             "light": "media/edit.svg",
@@ -117,7 +158,25 @@
         },
         {
           "command": "myCommands.removeCommand",
-          "when": "view == comandosView && viewItem == comandoItem",
+          "when": "view == commandsView && viewItem == commandItem",
+          "group": "inline",
+          "icon": {
+            "light": "media/delete.svg",
+            "dark": "media/delete.svg"
+          }
+        },
+        {
+          "command": "myCommands.renameGroup",
+          "when": "view == commandsView && viewItem == commandGroup",
+          "group": "inline",
+          "icon": {
+            "light": "media/edit.svg",
+            "dark": "media/edit.svg"
+          }
+        },
+        {
+          "command": "myCommands.removeGroup",
+          "when": "view == commandsView && viewItem == commandGroup",
           "group": "inline",
           "icon": {
             "light": "media/delete.svg",
@@ -128,7 +187,7 @@
     }
   },
   "activationEvents": [
-    "onView:comandosView",
+    "onView:commandsView",
     "onCommand:myCommands.addCommand",
     "onCommand:myCommands.runCommand",
     "onCommand:myCommands.editCommand",
