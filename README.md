@@ -20,6 +20,10 @@ No settings required. All commands are stored globally.
 
 ## Release Notes
 
+### 0.0.2
+
+- Adicionada confirmação antes de excluir comandos e grupos
+
 ### 0.0.1
 
 - Initial release with global command storage and custom icons

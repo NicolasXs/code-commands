@@ -61,8 +61,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "myCommands.removeGroup",
-    (groupItem: CommandGroupItem) => {
-      commandProvider.removeGroup(groupItem.id);
+    async (groupItem: CommandGroupItem) => {
+      const confirm = await vscode.window.showWarningMessage(
+        `Tem certeza que deseja excluir o grupo "${groupItem.name}"?`,
+        { modal: true },
+        "Excluir"
+      );
+      if (confirm === "Excluir") {
+        commandProvider.removeGroup(groupItem.id);
+      }
     }
   );
 
@@ -102,8 +109,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "myCommands.removeCommand",
-    (item: CommandItem) => {
-      commandProvider.removeCommand(item.label, item.groupId);
+    async (item: CommandItem) => {
+      const confirm = await vscode.window.showWarningMessage(
+        `Tem certeza que deseja excluir o comando "${item.label}"?`,
+        { modal: true },
+        "Excluir"
+      );
+      if (confirm === "Excluir") {
+        commandProvider.removeCommand(item.label, item.groupId);
+      }
     }
   );
 }

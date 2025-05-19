@@ -2,7 +2,7 @@
   "name": "code-commands",
   "displayName": "Code Commands",
   "description": "Manage and execute your custom project commands globally in VS Code.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "NicolasXs",
   "icon": "media/icon.png",
   "engines": {
@@ -89,12 +89,11 @@
       },
       {
         "command": "myCommands.runCommand",
-        "title": "Run",
+        "title": ".Run",
         "icon": {
           "light": "media/play.svg",
           "dark": "media/play.svg"
         }
-
       },
       {
         "command": "myCommands.editCommand",
