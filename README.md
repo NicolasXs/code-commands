@@ -22,7 +22,7 @@ No settings required. All commands are stored globally.
 
 ### 0.0.2
 
-- Adicionada confirmação antes de excluir comandos e grupos
+- Added confirmation before excluding commands and groups
 
 ### 0.0.1
 
