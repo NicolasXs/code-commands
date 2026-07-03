@@ -1,8 +1,8 @@
 {
   "name": "code-commands",
-  "displayName": "Code Commands",
+  "displayName": "Save Commands",
   "description": "Manage and execute your custom project commands globally in VS Code.",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "publisher": "NicolasXs",
   "icon": "media/icon.png",
   "engines": {
@@ -26,7 +26,7 @@
   },
   "contributes": {
     "configuration": {
-      "title": "Code Commands",
+      "title": "Save Commands",
       "properties": {
         "code-commands.groups": {
           "type": "array",
@@ -76,7 +76,7 @@
       "activitybar": [
         {
           "id": "codeCommands",
-          "title": "Code Commands",
+          "title": "Save Commands",
           "icon": "media/terminal.svg"
         }
       ]
@@ -85,7 +85,7 @@
       "codeCommands": [
         {
           "id": "commandsView",
-          "name": "Code Commands"
+          "name": "Save Commands"
         }
       ]
     },
@@ -93,12 +93,12 @@
       {
         "command": "code-commands.addCommand",
         "title": "Add New Command",
-        "category": "Code Commands"
+        "category": "Save Commands"
       },
       {
         "command": "code-commands.runCommand",
         "title": "Run",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": {
           "light": "media/play.svg",
           "dark": "media/play.svg"
@@ -107,7 +107,7 @@
       {
         "command": "code-commands.runGroup",
         "title": "Run All Commands",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": {
           "light": "media/play.svg",
           "dark": "media/play.svg"
@@ -116,7 +116,7 @@
       {
         "command": "code-commands.editCommand",
         "title": "Edit Command",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": {
           "light": "media/edit.svg",
           "dark": "media/edit.svg"
@@ -125,7 +125,7 @@
       {
         "command": "code-commands.removeCommand",
         "title": "Remove Command",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": {
           "light": "media/delete.svg",
           "dark": "media/delete.svg"
@@ -134,19 +134,19 @@
       {
         "command": "code-commands.refreshView",
         "title": "Refresh Commands",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": "$(refresh)"
       },
       {
         "command": "code-commands.addGroup",
         "title": "Add New Group",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": "$(add)"
       },
       {
         "command": "code-commands.renameGroup",
         "title": "Rename Group",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": {
           "light": "media/edit.svg",
           "dark": "media/edit.svg"
@@ -155,7 +155,7 @@
       {
         "command": "code-commands.removeGroup",
         "title": "Remove Group",
-        "category": "Code Commands",
+        "category": "Save Commands",
         "icon": {
           "light": "media/delete.svg",
           "dark": "media/delete.svg"
