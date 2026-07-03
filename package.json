@@ -105,6 +105,15 @@
         }
       },
       {
+        "command": "code-commands.runGroup",
+        "title": "Run All Commands",
+        "category": "Code Commands",
+        "icon": {
+          "light": "media/play.svg",
+          "dark": "media/play.svg"
+        }
+      },
+      {
         "command": "code-commands.editCommand",
         "title": "Edit Command",
         "category": "Code Commands",
@@ -168,9 +177,14 @@
       ],
       "view/item/context": [
         {
-          "command": "code-commands.addCommand",
+          "command": "code-commands.runGroup",
           "when": "view == commandsView && viewItem == commandGroup",
           "group": "inline@1"
+        },
+        {
+          "command": "code-commands.addCommand",
+          "when": "view == commandsView && viewItem == commandGroup",
+          "group": "inline@2"
         },
         {
           "command": "code-commands.runCommand",
@@ -190,12 +204,12 @@
         {
           "command": "code-commands.renameGroup",
           "when": "view == commandsView && viewItem == commandGroup",
-          "group": "inline@2"
+          "group": "inline@3"
         },
         {
           "command": "code-commands.removeGroup",
           "when": "view == commandsView && viewItem == commandGroup",
-          "group": "inline@3"
+          "group": "inline@4"
         }
       ]
     }

@@ -84,6 +84,21 @@ export function activate(context: vscode.ExtensionContext) {
     terminal.sendText(item.commandStr);
   });
 
+  register("code-commands.runGroup", async (group: CommandGroupItem) => {
+    if (group.commands.length === 0) {
+      vscode.window.showInformationMessage(
+        `Group "${group.name}" has no commands to run.`
+      );
+      return;
+    }
+    const terminal = await pickTerminal(group.name);
+    if (!terminal) return; // user cancelled the picker
+    terminal.show();
+    for (const cmd of group.commands) {
+      terminal.sendText(cmd.command);
+    }
+  });
+
   register("code-commands.editCommand", async (item: CommandItem) => {
     const label = await vscode.window.showInputBox({
       prompt: "New command name",

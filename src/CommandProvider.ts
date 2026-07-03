@@ -4,6 +4,7 @@ const CONFIG_SECTION = "code-commands";
 const GROUPS_KEY = "groups";
 const DEFAULT_GROUP_ID = "default";
 const COMMAND_MIME_TYPE = "application/vnd.code-commands.command";
+const GROUP_MIME_TYPE = "application/vnd.code-commands.group";
 
 export interface CommandData {
   /** Stable unique identifier, independent from the (editable) label. */
@@ -23,6 +24,10 @@ export interface CommandGroup {
 interface CommandDragPayload {
   id: string;
   groupId: string;
+}
+
+interface GroupDragPayload {
+  id: string;
 }
 
 export type CommandTreeItem = CommandGroupItem | CommandItem;
@@ -49,8 +54,8 @@ export class CommandProvider
   /** Guards against reacting to configuration changes we triggered ourselves. */
   private isSaving = false;
 
-  readonly dragMimeTypes = [COMMAND_MIME_TYPE];
-  readonly dropMimeTypes = [COMMAND_MIME_TYPE];
+  readonly dragMimeTypes = [COMMAND_MIME_TYPE, GROUP_MIME_TYPE];
+  readonly dropMimeTypes = [COMMAND_MIME_TYPE, GROUP_MIME_TYPE];
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.loadGroups();
@@ -213,18 +218,68 @@ export class CommandProvider
     source: readonly CommandTreeItem[],
     dataTransfer: vscode.DataTransfer
   ): Promise<void> {
-    const payload: CommandDragPayload[] = source
+    const commands: CommandDragPayload[] = source
       .filter((i): i is CommandItem => i instanceof CommandItem)
       .map((i) => ({ id: i.id, groupId: i.groupId }));
-    if (payload.length > 0) {
+    if (commands.length > 0) {
       dataTransfer.set(
         COMMAND_MIME_TYPE,
-        new vscode.DataTransferItem(JSON.stringify(payload))
+        new vscode.DataTransferItem(JSON.stringify(commands))
+      );
+    }
+
+    const groups: GroupDragPayload[] = source
+      .filter((i): i is CommandGroupItem => i instanceof CommandGroupItem)
+      .map((i) => ({ id: i.id }));
+    if (groups.length > 0) {
+      dataTransfer.set(
+        GROUP_MIME_TYPE,
+        new vscode.DataTransferItem(JSON.stringify(groups))
       );
     }
   }
 
   async handleDrop(
+    target: CommandTreeItem | undefined,
+    dataTransfer: vscode.DataTransfer
+  ): Promise<void> {
+    // Reordering groups takes precedence when a group is being dragged.
+    if (await this.handleGroupDrop(target, dataTransfer)) return;
+    await this.handleCommandDrop(target, dataTransfer);
+  }
+
+  private async handleGroupDrop(
+    target: CommandTreeItem | undefined,
+    dataTransfer: vscode.DataTransfer
+  ): Promise<boolean> {
+    const raw = dataTransfer.get(GROUP_MIME_TYPE);
+    if (!raw) return false;
+
+    let items: GroupDragPayload[];
+    try {
+      items = JSON.parse(await raw.asString());
+    } catch {
+      return true;
+    }
+
+    // Drop before the target's group (whether the target is a group or one of
+    // its commands); dropping on empty space moves to the end.
+    const beforeGroupId =
+      target instanceof CommandGroupItem
+        ? target.id
+        : target instanceof CommandItem
+        ? target.groupId
+        : undefined;
+
+    let changed = false;
+    for (const item of items) {
+      changed = this.moveGroup(item.id, beforeGroupId) || changed;
+    }
+    if (changed) void this.saveGroups();
+    return true;
+  }
+
+  private async handleCommandDrop(
     target: CommandTreeItem | undefined,
     dataTransfer: vscode.DataTransfer
   ): Promise<void> {
@@ -253,6 +308,23 @@ export class CommandProvider
       }
     }
     if (changed) void this.saveGroups();
+  }
+
+  private moveGroup(groupId: string, beforeGroupId?: string): boolean {
+    if (groupId === beforeGroupId) return false;
+    const idx = this.groups.findIndex((g) => g.id === groupId);
+    if (idx === -1) return false;
+
+    const [group] = this.groups.splice(idx, 1);
+    const insertIdx = beforeGroupId
+      ? this.groups.findIndex((g) => g.id === beforeGroupId)
+      : -1;
+    if (insertIdx !== -1) {
+      this.groups.splice(insertIdx, 0, group);
+    } else {
+      this.groups.push(group);
+    }
+    return true;
   }
 
   private moveCommand(
