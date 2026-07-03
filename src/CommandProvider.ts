@@ -1,7 +1,13 @@
 import * as vscode from "vscode";
-import * as path from "path";
+
+const CONFIG_SECTION = "code-commands";
+const GROUPS_KEY = "groups";
+const DEFAULT_GROUP_ID = "default";
+const COMMAND_MIME_TYPE = "application/vnd.code-commands.command";
 
 export interface CommandData {
+  /** Stable unique identifier, independent from the (editable) label. */
+  id: string;
   label: string;
   command: string;
 }
@@ -13,36 +19,56 @@ export interface CommandGroup {
   collapsed?: boolean;
 }
 
+/** Shape moved through drag & drop transfers. */
+interface CommandDragPayload {
+  id: string;
+  groupId: string;
+}
+
 export type CommandTreeItem = CommandGroupItem | CommandItem;
+
+function createId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function defaultGroups(): CommandGroup[] {
+  return [{ id: DEFAULT_GROUP_ID, name: "Default", commands: [] }];
+}
 
 export class CommandProvider
   implements
     vscode.TreeDataProvider<CommandTreeItem>,
     vscode.TreeDragAndDropController<CommandTreeItem>
 {
-  private _onDidChangeTreeData: vscode.EventEmitter<
+  private readonly _onDidChangeTreeData = new vscode.EventEmitter<
     CommandTreeItem | undefined | void
-  > = new vscode.EventEmitter<CommandTreeItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<
-    CommandTreeItem | undefined | void
-  > = this._onDidChangeTreeData.event;
+  >();
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  private groups: CommandGroup[] = [];
-  readonly dragMimeTypes = ["application/vnd.code-commands.command"];
-  readonly dropMimeTypes = ["application/vnd.code-commands.command"];
+  private groups: CommandGroup[] = defaultGroups();
+  /** Guards against reacting to configuration changes we triggered ourselves. */
+  private isSaving = false;
 
-  constructor(private context: vscode.ExtensionContext) {
+  readonly dragMimeTypes = [COMMAND_MIME_TYPE];
+  readonly dropMimeTypes = [COMMAND_MIME_TYPE];
+
+  constructor(private readonly context: vscode.ExtensionContext) {
     this.loadGroups();
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("code-commands.groups")) {
-        this.refresh();
-      }
-    });
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (
+          !this.isSaving &&
+          e.affectsConfiguration(`${CONFIG_SECTION}.${GROUPS_KEY}`)
+        ) {
+          this.refresh();
+        }
+      })
+    );
   }
 
   refresh(): void {
     this.loadGroups();
-    setTimeout(() => this._onDidChangeTreeData.fire(), 50);
+    this._onDidChangeTreeData.fire();
   }
 
   getTreeItem(element: CommandTreeItem): vscode.TreeItem {
@@ -51,192 +77,208 @@ export class CommandProvider
 
   getChildren(element?: CommandTreeItem): Thenable<CommandTreeItem[]> {
     if (!element) {
-      // Root: return groups
-      if (!this.groups || this.groups.length === 0) {
-        return Promise.resolve([
-          new CommandGroupItem("default", "Default", [], false),
-        ]);
-      }
       return Promise.resolve(
         this.groups.map(
-          (g) => new CommandGroupItem(g.id, g.name, g.commands, g.collapsed)
+          (g) =>
+            new CommandGroupItem(g.id, g.name, g.commands, g.collapsed ?? false)
         )
       );
     }
     if (element instanceof CommandGroupItem) {
       return Promise.resolve(
         element.commands.map(
-          (cmd) => new CommandItem(cmd.label, cmd.command, element.id)
+          (cmd) => new CommandItem(cmd.id, cmd.label, cmd.command, element.id)
         )
       );
     }
     return Promise.resolve([]);
   }
 
-  private loadGroups() {
+  // --- Persistence ---------------------------------------------------------
+
+  private loadGroups(): void {
     try {
-      const config = vscode.workspace.getConfiguration("code-commands");
-      const content = config.get<CommandGroup[]>("groups");
-      this.groups = Array.isArray(content)
-        ? content
-        : [{ id: "default", name: "Default", commands: [] }];
+      const stored = vscode.workspace
+        .getConfiguration(CONFIG_SECTION)
+        .get<CommandGroup[]>(GROUPS_KEY);
+      this.groups =
+        Array.isArray(stored) && stored.length > 0
+          ? this.normalize(stored)
+          : defaultGroups();
     } catch (e) {
-      vscode.window.showErrorMessage("Error loading command groups: " + e);
-      this.groups = [{ id: "default", name: "Default", commands: [] }];
+      vscode.window.showErrorMessage(`Error loading command groups: ${e}`);
+      this.groups = defaultGroups();
     }
   }
 
-  private saveGroups() {
+  /** Ensures every command has a stable id (migrates legacy data). */
+  private normalize(groups: CommandGroup[]): CommandGroup[] {
+    return groups.map((g) => ({
+      ...g,
+      commands: (g.commands ?? []).map((c) => ({
+        ...c,
+        id: c.id ?? createId(),
+      })),
+    }));
+  }
+
+  private async saveGroups(): Promise<void> {
+    this.isSaving = true;
     try {
-      const config = vscode.workspace.getConfiguration("code-commands");
-      config
-        .update("groups", this.groups, vscode.ConfigurationTarget.Global)
-        .then(() => {
-          this.refresh();
-        });
+      await vscode.workspace
+        .getConfiguration(CONFIG_SECTION)
+        .update(GROUPS_KEY, this.groups, vscode.ConfigurationTarget.Global);
+      this._onDidChangeTreeData.fire();
     } catch (e) {
-      vscode.window.showErrorMessage("Error saving command groups: " + e);
+      vscode.window.showErrorMessage(`Error saving command groups: ${e}`);
+    } finally {
+      this.isSaving = false;
     }
   }
 
-  // Command management
-  public addCommand(command: CommandData, groupId: string = "default") {
-    const group = this.groups.find((g) => g.id === groupId);
-    if (group) {
-      group.commands.push(command);
-      this.saveGroups();
-    }
+  private findGroup(groupId: string): CommandGroup | undefined {
+    return this.groups.find((g) => g.id === groupId);
   }
 
-  public editCommand(
-    oldLabel: string,
-    newCommand: CommandData,
-    groupId: string = "default"
-  ) {
-    const group = this.groups.find((g) => g.id === groupId);
-    if (group) {
-      const idx = group.commands.findIndex((c) => c.label === oldLabel);
-      if (idx !== -1) {
-        group.commands[idx] = newCommand;
-        this.saveGroups();
-      }
-    }
+  // --- Command management --------------------------------------------------
+
+  addCommand(
+    command: Omit<CommandData, "id">,
+    groupId: string = DEFAULT_GROUP_ID
+  ): void {
+    const group = this.findGroup(groupId);
+    if (!group) return;
+    group.commands.push({ id: createId(), ...command });
+    void this.saveGroups();
   }
 
-  public removeCommand(label: string, groupId: string = "default") {
-    const group = this.groups.find((g) => g.id === groupId);
-    if (group) {
-      group.commands = group.commands.filter((c) => c.label !== label);
-      this.saveGroups();
-    }
+  editCommand(
+    commandId: string,
+    changes: Omit<CommandData, "id">,
+    groupId: string = DEFAULT_GROUP_ID
+  ): void {
+    const group = this.findGroup(groupId);
+    const cmd = group?.commands.find((c) => c.id === commandId);
+    if (!cmd) return;
+    cmd.label = changes.label;
+    cmd.command = changes.command;
+    void this.saveGroups();
   }
 
-  // Group management
-  public addGroup(name: string) {
-    const id = Date.now().toString();
-    this.groups.push({ id, name, commands: [] });
-    this.saveGroups();
+  removeCommand(commandId: string, groupId: string = DEFAULT_GROUP_ID): void {
+    const group = this.findGroup(groupId);
+    if (!group) return;
+    group.commands = group.commands.filter((c) => c.id !== commandId);
+    void this.saveGroups();
   }
 
-  public renameGroup(groupId: string, newName: string) {
-    const group = this.groups.find((g) => g.id === groupId);
-    if (group) {
-      group.name = newName;
-      this.saveGroups();
-    }
+  // --- Group management ----------------------------------------------------
+
+  addGroup(name: string): void {
+    this.groups.push({ id: createId(), name, commands: [] });
+    void this.saveGroups();
   }
 
-  public removeGroup(groupId: string) {
+  renameGroup(groupId: string, newName: string): void {
+    const group = this.findGroup(groupId);
+    if (!group) return;
+    group.name = newName;
+    void this.saveGroups();
+  }
+
+  removeGroup(groupId: string): void {
     this.groups = this.groups.filter((g) => g.id !== groupId);
-    this.saveGroups();
+    void this.saveGroups();
   }
 
-  public setGroupCollapsed(groupId: string, collapsed: boolean) {
-    const group = this.groups.find((g) => g.id === groupId);
-    if (group) {
-      group.collapsed = collapsed;
-      this.saveGroups();
-    }
+  setGroupCollapsed(groupId: string, collapsed: boolean): void {
+    const group = this.findGroup(groupId);
+    if (!group || group.collapsed === collapsed) return;
+    group.collapsed = collapsed;
+    // Persist silently: firing a tree change here would fight the view's own
+    // expand/collapse animation.
+    this.isSaving = true;
+    void vscode.workspace
+      .getConfiguration(CONFIG_SECTION)
+      .update(GROUPS_KEY, this.groups, vscode.ConfigurationTarget.Global)
+      .then(
+        () => (this.isSaving = false),
+        () => (this.isSaving = false)
+      );
   }
 
-  // Drag and drop support
+  // --- Drag & drop ---------------------------------------------------------
+
   async handleDrag(
     source: readonly CommandTreeItem[],
-    dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken
+    dataTransfer: vscode.DataTransfer
   ): Promise<void> {
-    const items = source.filter(
-      (i) => i instanceof CommandItem
-    ) as CommandItem[];
-    if (items.length > 0) {
+    const payload: CommandDragPayload[] = source
+      .filter((i): i is CommandItem => i instanceof CommandItem)
+      .map((i) => ({ id: i.id, groupId: i.groupId }));
+    if (payload.length > 0) {
       dataTransfer.set(
-        "application/vnd.code-commands.command",
-        new vscode.DataTransferItem(
-          JSON.stringify(
-            items.map((i) => ({
-              label: i.label,
-              command: i.commandStr,
-              groupId: i.groupId,
-            }))
-          )
-        )
+        COMMAND_MIME_TYPE,
+        new vscode.DataTransferItem(JSON.stringify(payload))
       );
     }
   }
 
   async handleDrop(
     target: CommandTreeItem | undefined,
-    dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken
+    dataTransfer: vscode.DataTransfer
   ): Promise<void> {
-    const raw = dataTransfer.get("application/vnd.code-commands.command");
+    const raw = dataTransfer.get(COMMAND_MIME_TYPE);
     if (!raw) return;
-    const items: { label: string; command: string; groupId: string }[] =
-      JSON.parse(await raw.asString());
-    if (target instanceof CommandGroupItem) {
-      // Move to group
-      for (const item of items) {
-        this.moveCommandToGroup(item.label, item.groupId, target.id);
-      }
-    } else if (target instanceof CommandItem) {
-      // Move to same group, reorder
-      for (const item of items) {
-        this.moveCommandToGroup(
-          item.label,
-          item.groupId,
-          target.groupId,
-          target.label
-        );
+
+    let items: CommandDragPayload[];
+    try {
+      items = JSON.parse(await raw.asString());
+    } catch {
+      return;
+    }
+
+    let changed = false;
+    for (const item of items) {
+      if (target instanceof CommandGroupItem) {
+        changed = this.moveCommand(item.id, item.groupId, target.id) || changed;
+      } else if (target instanceof CommandItem) {
+        changed =
+          this.moveCommand(
+            item.id,
+            item.groupId,
+            target.groupId,
+            target.id
+          ) || changed;
       }
     }
-    this.saveGroups();
+    if (changed) void this.saveGroups();
   }
 
-  private moveCommandToGroup(
-    label: string,
+  private moveCommand(
+    commandId: string,
     fromGroupId: string,
     toGroupId: string,
-    beforeLabel?: string
-  ) {
-    if (fromGroupId === toGroupId && !beforeLabel) return;
-    const fromGroup = this.groups.find((g) => g.id === fromGroupId);
-    const toGroup = this.groups.find((g) => g.id === toGroupId);
-    if (!fromGroup || !toGroup) return;
-    const idx = fromGroup.commands.findIndex((c) => c.label === label);
-    if (idx === -1) return;
+    beforeCommandId?: string
+  ): boolean {
+    const fromGroup = this.findGroup(fromGroupId);
+    const toGroup = this.findGroup(toGroupId);
+    if (!fromGroup || !toGroup) return false;
+
+    const idx = fromGroup.commands.findIndex((c) => c.id === commandId);
+    if (idx === -1) return false;
+    if (fromGroupId === toGroupId && !beforeCommandId) return false;
+
     const [cmd] = fromGroup.commands.splice(idx, 1);
-    if (beforeLabel) {
-      const insertIdx = toGroup.commands.findIndex(
-        (c) => c.label === beforeLabel
-      );
-      if (insertIdx !== -1) {
-        toGroup.commands.splice(insertIdx, 0, cmd);
-      } else {
-        toGroup.commands.push(cmd);
-      }
+    const insertIdx = beforeCommandId
+      ? toGroup.commands.findIndex((c) => c.id === beforeCommandId)
+      : -1;
+    if (insertIdx !== -1) {
+      toGroup.commands.splice(insertIdx, 0, cmd);
     } else {
       toGroup.commands.push(cmd);
     }
+    return true;
   }
 }
 
@@ -245,7 +287,7 @@ export class CommandGroupItem extends vscode.TreeItem {
     public readonly id: string,
     public name: string,
     public commands: CommandData[],
-    public collapsed: boolean = false
+    collapsed: boolean = false
   ) {
     super(
       name,
@@ -254,30 +296,21 @@ export class CommandGroupItem extends vscode.TreeItem {
         : vscode.TreeItemCollapsibleState.Expanded
     );
     this.contextValue = "commandGroup";
-    this.iconPath = {
-      light: vscode.Uri.file(path.join(__dirname, "..", "media", "icon.svg")),
-      dark: vscode.Uri.file(path.join(__dirname, "..", "media", "icon.svg")),
-    };
+    this.iconPath = new vscode.ThemeIcon("folder");
   }
 }
 
 export class CommandItem extends vscode.TreeItem {
   constructor(
+    public readonly id: string,
     public readonly label: string,
     public readonly commandStr: string,
     public readonly groupId: string
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
-    this.tooltip = `${this.label} - ${this.commandStr}`;
-    this.description = this.commandStr;
+    this.tooltip = `${label} — ${commandStr}`;
+    this.description = commandStr;
     this.contextValue = "commandItem";
-    this.iconPath = {
-      light: vscode.Uri.file(
-        path.join(__dirname, "..", "media", "terminal.svg")
-      ),
-      dark: vscode.Uri.file(
-        path.join(__dirname, "..", "media", "terminal.svg")
-      ),
-    };
+    this.iconPath = new vscode.ThemeIcon("terminal");
   }
 }

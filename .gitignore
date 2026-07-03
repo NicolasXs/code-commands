@@ -1,9 +1,6 @@
 # Compiled output
-src/**/*.js
-src/**/*.js.map
-*.vsix
 out/
-code-commands-*.vsix
+*.vsix
 *.tsbuildinfo
 
 # Dependencies

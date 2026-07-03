@@ -11,17 +11,18 @@
   "categories": [
     "Other"
   ],
-  "main": "./src/extension.js",
+  "main": "./out/extension.js",
   "scripts": {
-    "vscode:prepublish": "tsc -p .",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p .",
-    "watch": "tsc -watch -p ."
+    "watch": "tsc -watch -p .",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.70.0",
-    "typescript": "^5.0.0",
-    "vsce": "^3.0.0"
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.0.0"
   },
   "contributes": {
     "configuration": {
@@ -46,11 +47,17 @@
               "name": {
                 "type": "string"
               },
+              "collapsed": {
+                "type": "boolean"
+              },
               "commands": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
+                    "id": {
+                      "type": "string"
+                    },
                     "label": {
                       "type": "string"
                     },
@@ -84,52 +91,62 @@
     },
     "commands": [
       {
-        "command": "myCommands.addCommand",
-        "title": "Add New Command"
+        "command": "code-commands.addCommand",
+        "title": "Add New Command",
+        "category": "Code Commands"
       },
       {
-        "command": "myCommands.runCommand",
-        "title": ".Run",
+        "command": "code-commands.runCommand",
+        "title": "Run",
+        "category": "Code Commands",
         "icon": {
           "light": "media/play.svg",
           "dark": "media/play.svg"
         }
       },
       {
-        "command": "myCommands.editCommand",
-        "title": "Edit",
+        "command": "code-commands.editCommand",
+        "title": "Edit Command",
+        "category": "Code Commands",
         "icon": {
           "light": "media/edit.svg",
           "dark": "media/edit.svg"
         }
       },
       {
-        "command": "myCommands.removeCommand",
-        "title": "Remove",
+        "command": "code-commands.removeCommand",
+        "title": "Remove Command",
+        "category": "Code Commands",
         "icon": {
           "light": "media/delete.svg",
           "dark": "media/delete.svg"
         }
       },
       {
-        "command": "myCommands.refreshView",
-        "title": "Refresh Commands"
+        "command": "code-commands.refreshView",
+        "title": "Refresh Commands",
+        "category": "Code Commands",
+        "icon": "$(refresh)"
       },
       {
-        "command": "myCommands.addGroup",
-        "title": "Add New Group"
+        "command": "code-commands.addGroup",
+        "title": "Add New Group",
+        "category": "Code Commands",
+        "icon": "$(add)"
       },
       {
-        "command": "myCommands.renameGroup",
-        "title": "edit",
+        "command": "code-commands.renameGroup",
+        "title": "Rename Group",
+        "category": "Code Commands",
         "icon": {
           "light": "media/edit.svg",
           "dark": "media/edit.svg"
         }
       },
       {
-        "command": "myCommands.removeGroup",
-        "title": "remove",
+        "command": "code-commands.removeGroup",
+        "title": "Remove Group",
+        "category": "Code Commands",
         "icon": {
           "light": "media/delete.svg",
           "dark": "media/delete.svg"
@@ -139,79 +156,52 @@
     "menus": {
       "view/title": [
         {
-          "command": "myCommands.addCommand",
+          "command": "code-commands.addGroup",
           "when": "view == commandsView",
-          "group": "navigation",
-          "icon": {
-            "light": "media/add.svg",
-            "dark": "media/add.svg"
-          }
+          "group": "navigation"
         },
         {
-          "command": "myCommands.addGroup",
+          "command": "code-commands.refreshView",
           "when": "view == commandsView",
-          "group": "navigation",
-          "icon": {
-            "light": "media/add.svg",
-            "dark": "media/add.svg"
-          }
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "myCommands.runCommand",
-          "when": "view == commandsView && viewItem == commandItem",
-          "group": "inline",
-          "icon": {
-            "light": "media/play.svg",
-            "dark": "media/play.svg"
-          }
-        },
-        {
-          "command": "myCommands.editCommand",
-          "when": "view == commandsView && viewItem == commandItem",
-          "group": "inline",
-          "icon": {
-            "light": "media/edit.svg",
-            "dark": "media/edit.svg"
-          }
-        },
-        {
-          "command": "myCommands.removeCommand",
-          "when": "view == commandsView && viewItem == commandItem",
-          "group": "inline",
-          "icon": {
-            "light": "media/delete.svg",
-            "dark": "media/delete.svg"
-          }
-        },
-        {
-          "command": "myCommands.renameGroup",
+          "command": "code-commands.addCommand",
           "when": "view == commandsView && viewItem == commandGroup",
-          "group": "inline",
-          "icon": {
-            "light": "media/edit.svg",
-            "dark": "media/edit.svg"
-          }
+          "group": "inline@1"
         },
         {
-          "command": "myCommands.removeGroup",
+          "command": "code-commands.runCommand",
+          "when": "view == commandsView && viewItem == commandItem",
+          "group": "inline@1"
+        },
+        {
+          "command": "code-commands.editCommand",
+          "when": "view == commandsView && viewItem == commandItem",
+          "group": "inline@2"
+        },
+        {
+          "command": "code-commands.removeCommand",
+          "when": "view == commandsView && viewItem == commandItem",
+          "group": "inline@3"
+        },
+        {
+          "command": "code-commands.renameGroup",
           "when": "view == commandsView && viewItem == commandGroup",
-          "group": "inline",
-          "icon": {
-            "light": "media/delete.svg",
-            "dark": "media/delete.svg"
-          }
+          "group": "inline@2"
+        },
+        {
+          "command": "code-commands.removeGroup",
+          "when": "view == commandsView && viewItem == commandGroup",
+          "group": "inline@3"
         }
       ]
     }
   },
   "activationEvents": [
-    "onView:commandsView",
-    "onCommand:myCommands.addCommand",
-    "onCommand:myCommands.runCommand",
-    "onCommand:myCommands.editCommand",
-    "onCommand:myCommands.removeCommand"
+    "onView:commandsView"
   ],
   "repository": {
     "type": "git",
